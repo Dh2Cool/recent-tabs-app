@@ -4,10 +4,16 @@ import SwiftUI
 public struct SwitcherOverlayView: View {
     private let state: SwitcherState
     @ObservedObject private var faviconProvider: FaviconProvider
+    @ObservedObject private var snapshotProvider: TabSnapshotProvider
 
-    public init(state: SwitcherState, faviconProvider: FaviconProvider) {
+    public init(
+        state: SwitcherState,
+        faviconProvider: FaviconProvider,
+        snapshotProvider: TabSnapshotProvider
+    ) {
         self.state = state
         self.faviconProvider = faviconProvider
+        self.snapshotProvider = snapshotProvider
     }
 
     public var body: some View {
@@ -16,6 +22,7 @@ public struct SwitcherOverlayView: View {
                 ForEach(Array(state.tabs.enumerated()), id: \.element.id) { index, tab in
                     SwitcherTabTile(
                         display: TabDisplayModel(tab: tab),
+                        snapshot: snapshotProvider.snapshot(for: tab),
                         image: faviconProvider.image(for: tab),
                         isHighlighted: index == state.highlightedIndex
                     )
@@ -45,6 +52,7 @@ public struct SwitcherOverlayView: View {
 
 private struct SwitcherTabTile: View {
     let display: TabDisplayModel
+    let snapshot: NSImage?
     let image: NSImage?
     let isHighlighted: Bool
 
@@ -53,14 +61,29 @@ private struct SwitcherTabTile: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .fill(tileBackground)
-                    .frame(width: isHighlighted ? 88 : 78, height: isHighlighted ? 78 : 68)
+                    .frame(width: 120, height: 76)
                     .overlay(
                         RoundedRectangle(cornerRadius: 15, style: .continuous)
                             .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.14), lineWidth: isHighlighted ? 4 : 1)
                     )
                     .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
 
-                if let image {
+                if let snapshot {
+                    Image(nsImage: snapshot)
+                        .resizable()
+                        .interpolation(.high)
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 120, height: 76)
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        .overlay(
+                            LinearGradient(
+                                colors: [.black.opacity(0), .black.opacity(0.22)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        )
+                } else if let image {
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)
@@ -72,7 +95,7 @@ private struct SwitcherTabTile: View {
                         .foregroundStyle(.white)
                 }
             }
-            .frame(width: 118, height: 84, alignment: .center)
+            .frame(width: SwitcherOverlayMetrics.tileWidth, height: 86, alignment: .center)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(display.title)
@@ -85,7 +108,7 @@ private struct SwitcherTabTile: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .frame(width: 118, alignment: .leading)
+            .frame(width: SwitcherOverlayMetrics.tileWidth, alignment: .leading)
         }
     }
 

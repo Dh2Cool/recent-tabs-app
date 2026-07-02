@@ -7,6 +7,7 @@ public final class SwitcherCoordinator {
     private let faviconProvider: FaviconProvider
     private let panelController: SwitcherPanelControlling
     private let activeApplicationProvider: ActiveApplicationProviding
+    private let snapshotProvider: TabSnapshotLoading?
     private var recentTabs = RecentTabStore()
     private var state: SwitcherState?
     private var isActivating = false
@@ -15,12 +16,14 @@ public final class SwitcherCoordinator {
         safariClient: SafariControlling,
         faviconProvider: FaviconProvider,
         panelController: SwitcherPanelControlling,
-        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider()
+        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider(),
+        snapshotProvider: TabSnapshotLoading? = nil
     ) {
         self.safariClient = safariClient
         self.faviconProvider = faviconProvider
         self.panelController = panelController
         self.activeApplicationProvider = activeApplicationProvider
+        self.snapshotProvider = snapshotProvider
     }
 
     public func refreshActiveTab() async {
@@ -59,6 +62,7 @@ public final class SwitcherCoordinator {
             )
             state = newState
             ordered.forEach { faviconProvider.loadIconIfNeeded(for: $0) }
+            ordered.forEach { snapshotProvider?.loadSnapshotIfNeeded(for: $0) }
             panelController.show(state: newState)
         } catch {
             panelController.hide()

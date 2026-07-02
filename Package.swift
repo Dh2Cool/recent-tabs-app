@@ -12,7 +12,12 @@ let package = Package(
         .library(name: "SafariRecentTabsCore", targets: ["SafariRecentTabsCore"])
     ],
     targets: [
-        .target(name: "SafariRecentTabsCore"),
+        .target(
+            name: "SafariRecentTabsCore",
+            linkerSettings: [
+                .linkedFramework("WebKit")
+            ]
+        ),
         .executableTarget(
             name: "SafariRecentTabsApp",
             dependencies: ["SafariRecentTabsCore"]

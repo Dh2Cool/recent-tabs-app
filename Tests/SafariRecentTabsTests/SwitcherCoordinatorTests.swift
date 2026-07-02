@@ -24,17 +24,37 @@ final class SwitcherCoordinatorTests: XCTestCase {
         let safari = FakeSafariClient(tabs: sampleTabs)
         let panel = FakePanelController()
         let activeApp = FakeActiveApplicationProvider(isSafariFrontmost: true)
+        let snapshots = FakeSnapshotProvider()
         let coordinator = SwitcherCoordinator(
             safariClient: safari,
             faviconProvider: FaviconProvider(),
             panelController: panel,
-            activeApplicationProvider: activeApp
+            activeApplicationProvider: activeApp,
+            snapshotProvider: snapshots
         )
 
         await coordinator.handleHotkey()
 
         XCTAssertEqual(safari.frontmostWindowTabCallCount, 1)
         XCTAssertEqual(panel.showCount, 1)
+    }
+
+    func testHotkeyStartsSnapshotLoadingForDisplayedTabs() async {
+        let safari = FakeSafariClient(tabs: sampleTabs)
+        let panel = FakePanelController()
+        let activeApp = FakeActiveApplicationProvider(isSafariFrontmost: true)
+        let snapshots = FakeSnapshotProvider()
+        let coordinator = SwitcherCoordinator(
+            safariClient: safari,
+            faviconProvider: FaviconProvider(),
+            panelController: panel,
+            activeApplicationProvider: activeApp,
+            snapshotProvider: snapshots
+        )
+
+        await coordinator.handleHotkey()
+
+        XCTAssertEqual(snapshots.loadedTabIDs, sampleTabs.map(\.id))
     }
 
     private var sampleTabs: [SafariTab] {
@@ -74,4 +94,13 @@ private final class FakePanelController: SwitcherPanelControlling {
 
 private struct FakeActiveApplicationProvider: ActiveApplicationProviding {
     let isSafariFrontmost: Bool
+}
+
+@MainActor
+private final class FakeSnapshotProvider: TabSnapshotLoading {
+    private(set) var loadedTabIDs: [SafariTab.ID] = []
+
+    func loadSnapshotIfNeeded(for tab: SafariTab) {
+        loadedTabIDs.append(tab.id)
+    }
 }
