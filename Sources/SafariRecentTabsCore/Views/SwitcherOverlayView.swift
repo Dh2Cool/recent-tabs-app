@@ -4,16 +4,10 @@ import SwiftUI
 public struct SwitcherOverlayView: View {
     private let state: SwitcherState
     @ObservedObject private var faviconProvider: FaviconProvider
-    @ObservedObject private var snapshotProvider: TabSnapshotProvider
 
-    public init(
-        state: SwitcherState,
-        faviconProvider: FaviconProvider,
-        snapshotProvider: TabSnapshotProvider
-    ) {
+    public init(state: SwitcherState, faviconProvider: FaviconProvider) {
         self.state = state
         self.faviconProvider = faviconProvider
-        self.snapshotProvider = snapshotProvider
     }
 
     public var body: some View {
@@ -22,7 +16,6 @@ public struct SwitcherOverlayView: View {
                 ForEach(Array(state.tabs.enumerated()), id: \.element.id) { index, tab in
                     SwitcherTabTile(
                         display: TabDisplayModel(tab: tab),
-                        snapshot: snapshotProvider.snapshot(for: tab),
                         image: faviconProvider.image(for: tab),
                         isHighlighted: index == state.highlightedIndex
                     )
@@ -52,7 +45,6 @@ public struct SwitcherOverlayView: View {
 
 private struct SwitcherTabTile: View {
     let display: TabDisplayModel
-    let snapshot: NSImage?
     let image: NSImage?
     let isHighlighted: Bool
 
@@ -68,22 +60,7 @@ private struct SwitcherTabTile: View {
                     )
                     .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
 
-                if let snapshot {
-                    Image(nsImage: snapshot)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 120, height: 76)
-                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        .overlay(
-                            LinearGradient(
-                                colors: [.black.opacity(0), .black.opacity(0.22)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        )
-                } else if let image {
+                if let image {
                     Image(nsImage: image)
                         .resizable()
                         .interpolation(.high)

@@ -32,7 +32,7 @@ Safari Recent Tabs is designed to stay local.
 
 macOS may ask for Automation permission so the app can read and switch Safari tabs. That permission is used only to control Safari locally.
 
-Tab preview snapshots are experimental. For privacy and trust, the app should work beautifully with favicons, titles, and domains even when previews are disabled or unavailable.
+The switcher uses favicons, titles, and domains by default. That keeps the app fast and avoids asking for broad screen-capture permissions.
 
 ## Current Status
 
@@ -47,13 +47,11 @@ Working:
 - MRU tab ordering.
 - Native floating overlay.
 - Favicon/fallback tile display.
-- Experimental URL-rendered tab snapshots.
 
 Still rough:
 
 - App is not signed/notarized for normal distribution yet.
 - No packaged release installer yet.
-- Snapshot previews do not share Safari's logged-in session, so authenticated sites may show sign-in pages.
 - All-window switching is planned but not the default yet.
 
 ## Run From Source

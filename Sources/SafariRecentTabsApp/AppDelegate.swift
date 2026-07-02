@@ -12,16 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let safariClient = AppleScriptSafariAutomationClient()
         let faviconProvider = FaviconProvider()
-        let snapshotProvider = TabSnapshotProvider()
-        let panelController = SwitcherPanelController(
-            faviconProvider: faviconProvider,
-            snapshotProvider: snapshotProvider
-        )
+        let panelController = SwitcherPanelController(faviconProvider: faviconProvider)
         let coordinator = SwitcherCoordinator(
             safariClient: safariClient,
             faviconProvider: faviconProvider,
-            panelController: panelController,
-            snapshotProvider: snapshotProvider
+            panelController: panelController
         )
         let hotkeyController = HotkeyController(
             onHotkey: { [weak coordinator] in
