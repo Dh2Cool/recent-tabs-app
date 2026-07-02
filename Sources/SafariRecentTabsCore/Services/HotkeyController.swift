@@ -1,6 +1,9 @@
 import AppKit
 import Carbon
 import CoreGraphics
+import OSLog
+
+private let hotkeyLogger = Logger(subsystem: "com.dhruvshetty.SafariRecentTabs", category: "HotkeyController")
 
 public final class HotkeyController {
     private let onHotkey: () -> Void
@@ -9,13 +12,13 @@ public final class HotkeyController {
     private let onEscape: () -> Void
     private let activeApplicationProvider: ActiveApplicationProviding
 
-    private var hotKeyRefs: [EventHotKeyRef] = []
+    private var fallbackHotKeyRefs: [EventHotKeyRef] = []
+    private var safariHotKeyRefs: [EventHotKeyRef] = []
     private var eventHandlerRef: EventHandlerRef?
-    private var controlTabEventTap: CFMachPort?
-    private var controlTabRunLoopSource: CFRunLoopSource?
-    private var flagsMonitor: Any?
     private var keyMonitor: Any?
     private var localKeyMonitor: Any?
+    private var activeApplicationObserver: NSObjectProtocol?
+    private var modifierReleaseTimer: Timer?
 
     public init(
         onHotkey: @escaping () -> Void,
@@ -32,29 +35,34 @@ public final class HotkeyController {
     }
 
     public func start() {
-        registerCarbonHotkey()
-        installControlTabEventTap()
+        installCarbonEventHandler()
+        registerFallbackHotkeys()
+        refreshSafariScopedHotkeys()
+        installActiveApplicationObserver()
         installEventMonitors()
     }
 
-    public func refreshControlTabEventTap() {
-        uninstallControlTabEventTap()
-        installControlTabEventTap()
+    public func refreshSafariScopedHotkeys() {
+        if activeApplicationProvider.isSafariFrontmost {
+            registerSafariHotkeysIfNeeded()
+        } else {
+            unregisterSafariHotkeys()
+        }
     }
 
     public func stop() {
-        for hotKeyRef in hotKeyRefs {
-            UnregisterEventHotKey(hotKeyRef)
-        }
-        hotKeyRefs.removeAll()
+        unregisterFallbackHotkeys()
+        unregisterSafariHotkeys()
         if let eventHandlerRef {
             RemoveEventHandler(eventHandlerRef)
         }
         eventHandlerRef = nil
-        uninstallControlTabEventTap()
-        if let flagsMonitor {
-            NSEvent.removeMonitor(flagsMonitor)
+        modifierReleaseTimer?.invalidate()
+        modifierReleaseTimer = nil
+        if let activeApplicationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activeApplicationObserver)
         }
+        activeApplicationObserver = nil
         if let keyMonitor {
             NSEvent.removeMonitor(keyMonitor)
         }
@@ -63,7 +71,11 @@ public final class HotkeyController {
         }
     }
 
-    private func registerCarbonHotkey() {
+    private func installCarbonEventHandler() {
+        guard eventHandlerRef == nil else {
+            return
+        }
+
         var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let selfPointer = Unmanaged.passUnretained(self).toOpaque()
 
@@ -88,10 +100,11 @@ public final class HotkeyController {
                     controller.onHotkey()
                     return noErr
                 }
-                if hotKeyID.id == 2 {
-                    controller.onReverseHotkey()
-                } else {
-                    controller.onHotkey()
+                switch hotKeyID.id {
+                case HotkeyID.fallbackReverse.rawValue, HotkeyID.safariReverse.rawValue:
+                    controller.trigger(.reverse)
+                default:
+                    controller.trigger(.forward)
                 }
                 return noErr
             },
@@ -100,16 +113,74 @@ public final class HotkeyController {
             selfPointer,
             &eventHandlerRef
         )
-
-        registerHotkey(id: 1, modifiers: UInt32(controlKey))
-        registerHotkey(id: 2, modifiers: UInt32(controlKey | shiftKey))
     }
 
-    private func registerHotkey(id: UInt32, modifiers: UInt32) {
+    private func registerFallbackHotkeys() {
+        guard fallbackHotKeyRefs.isEmpty else {
+            return
+        }
+        registerHotkey(
+            id: HotkeyID.fallbackForward.rawValue,
+            keyCode: UInt32(kVK_ANSI_Grave),
+            modifiers: UInt32(controlKey),
+            label: "Control-`",
+            refs: &fallbackHotKeyRefs
+        )
+        registerHotkey(
+            id: HotkeyID.fallbackReverse.rawValue,
+            keyCode: UInt32(kVK_ANSI_Grave),
+            modifiers: UInt32(controlKey | shiftKey),
+            label: "Control-Shift-`",
+            refs: &fallbackHotKeyRefs
+        )
+    }
+
+    private func registerSafariHotkeysIfNeeded() {
+        guard safariHotKeyRefs.isEmpty else {
+            return
+        }
+        registerHotkey(
+            id: HotkeyID.safariForward.rawValue,
+            keyCode: UInt32(kVK_Tab),
+            modifiers: UInt32(controlKey),
+            label: "Safari Control-Tab",
+            refs: &safariHotKeyRefs
+        )
+        registerHotkey(
+            id: HotkeyID.safariReverse.rawValue,
+            keyCode: UInt32(kVK_Tab),
+            modifiers: UInt32(controlKey | shiftKey),
+            label: "Safari Control-Shift-Tab",
+            refs: &safariHotKeyRefs
+        )
+    }
+
+    private func unregisterFallbackHotkeys() {
+        unregisterHotkeys(&fallbackHotKeyRefs)
+    }
+
+    private func unregisterSafariHotkeys() {
+        unregisterHotkeys(&safariHotKeyRefs)
+    }
+
+    private func unregisterHotkeys(_ refs: inout [EventHotKeyRef]) {
+        for hotKeyRef in refs {
+            UnregisterEventHotKey(hotKeyRef)
+        }
+        refs.removeAll()
+    }
+
+    private func registerHotkey(
+        id: UInt32,
+        keyCode: UInt32,
+        modifiers: UInt32,
+        label: String,
+        refs: inout [EventHotKeyRef]
+    ) {
         var hotKeyRef: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: fourCharCode("SRTS"), id: id)
         let status = RegisterEventHotKey(
-            UInt32(kVK_ANSI_Grave),
+            keyCode,
             modifiers,
             hotKeyID,
             GetApplicationEventTarget(),
@@ -117,75 +188,27 @@ public final class HotkeyController {
             &hotKeyRef
         )
         if status == noErr, let hotKeyRef {
-            hotKeyRefs.append(hotKeyRef)
+            refs.append(hotKeyRef)
+            hotkeyLogger.info("Registered \(label, privacy: .public) hotkey")
+        } else {
+            hotkeyLogger.error("Failed to register \(label, privacy: .public) hotkey. status=\(status, privacy: .public)")
         }
     }
 
-    private func installControlTabEventTap() {
-        guard controlTabEventTap == nil else {
+    private func installActiveApplicationObserver() {
+        guard activeApplicationObserver == nil else {
             return
         }
-
-        let selfPointer = Unmanaged.passUnretained(self).toOpaque()
-        let eventMask = CGEventMask(1 << CGEventType.keyDown.rawValue)
-
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: eventMask,
-            callback: { _, type, event, userInfo in
-                guard type == .keyDown, let userInfo else {
-                    return Unmanaged.passUnretained(event)
-                }
-
-                let controller = Unmanaged<HotkeyController>.fromOpaque(userInfo).takeUnretainedValue()
-                let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-                guard let action = KeyboardShortcutClassifier.action(keyCode: keyCode, flags: event.flags),
-                      controller.activeApplicationProvider.isSafariFrontmost
-                else {
-                    return Unmanaged.passUnretained(event)
-                }
-
-                switch action {
-                case .forward:
-                    controller.onHotkey()
-                case .reverse:
-                    controller.onReverseHotkey()
-                }
-
-                return nil
-            },
-            userInfo: selfPointer
-        ) else {
-            return
+        activeApplicationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshSafariScopedHotkeys()
         }
-
-        controlTabEventTap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        controlTabRunLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-    }
-
-    private func uninstallControlTabEventTap() {
-        if let controlTabRunLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), controlTabRunLoopSource, .commonModes)
-        }
-        if let controlTabEventTap {
-            CGEvent.tapEnable(tap: controlTabEventTap, enable: false)
-        }
-        controlTabRunLoopSource = nil
-        controlTabEventTap = nil
     }
 
     private func installEventMonitors() {
-        flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            if event.modifierFlags.contains(.control) == false {
-                self?.onControlReleased()
-            }
-        }
-
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
                 self?.onEscape()
@@ -200,6 +223,41 @@ public final class HotkeyController {
             return event
         }
     }
+
+    private func trigger(_ action: KeyboardShortcutAction) {
+        beginModifierReleasePolling()
+        switch action {
+        case .forward:
+            onHotkey()
+        case .reverse:
+            onReverseHotkey()
+        }
+    }
+
+    private func beginModifierReleasePolling() {
+        guard modifierReleaseTimer == nil else {
+            return
+        }
+        modifierReleaseTimer = Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            let modifiers = GetCurrentKeyModifiers()
+            if modifiers & UInt32(controlKey) == 0 {
+                timer.invalidate()
+                self.modifierReleaseTimer = nil
+                self.onControlReleased()
+            }
+        }
+    }
+}
+
+private enum HotkeyID: UInt32 {
+    case fallbackForward = 1
+    case fallbackReverse = 2
+    case safariForward = 3
+    case safariReverse = 4
 }
 
 private func fourCharCode(_ string: String) -> OSType {

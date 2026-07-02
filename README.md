@@ -32,7 +32,7 @@ Safari Recent Tabs is designed to stay local.
 
 macOS may ask for Automation permission so the app can read and switch Safari tabs. That permission is used only to control Safari locally.
 
-Control-Tab is intercepted only while Safari is frontmost. For that keyboard event tap, macOS usually wants **Accessibility** permission. The app now asks for it on launch and has menu items for retrying the prompt or opening the right Settings pane.
+Control-Tab is registered only while Safari is frontmost, then unregistered when you switch away from Safari. That keeps the shortcut scoped to Safari without overriding Control-Tab in the rest of macOS.
 
 The switcher uses favicons, titles, and domains by default. That keeps the app fast and avoids asking for broad screen-capture permissions.
 
@@ -98,16 +98,15 @@ If the shortcut does not work as expected, check:
 
 ```text
 System Settings > Privacy & Security > Automation
-System Settings > Privacy & Security > Accessibility
 ```
 
-If Safari Recent Tabs does not appear automatically under Accessibility, click **+** and add:
+Accessibility is no longer required for the main Control-Tab shortcut path. The app still includes an **Open Accessibility Settings** menu item because some development builds may need it for auxiliary global-key behavior such as Escape-to-cancel.
+
+If you do need to add the app manually, click **+** under Accessibility and add:
 
 ```text
 dist/SafariRecentTabs.app
 ```
-
-Then turn it on and either choose **Grant Accessibility Permission** from the Safari Recent Tabs menu-bar item or relaunch the app. Input Monitoring is not the primary permission path for this build, so it may not show up in that list.
 
 ## How To Use
 

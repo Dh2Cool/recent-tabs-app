@@ -48,7 +48,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.hotkeyController = hotkeyController
 
         configureStatusItem()
-        AccessibilityPermissionPrompter.requestIfNeeded()
         hotkeyController.start()
         startPollingSafari()
     }
@@ -104,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func requestAccessibilityPermission() {
         AccessibilityPermissionPrompter.requestIfNeeded()
-        hotkeyController?.refreshControlTabEventTap()
+        hotkeyController?.refreshSafariScopedHotkeys()
     }
 
     @objc private func openAccessibilitySettings() {
