@@ -48,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.hotkeyController = hotkeyController
 
         configureStatusItem()
+        AccessibilityPermissionPrompter.requestIfNeeded()
         hotkeyController.start()
         startPollingSafari()
     }
@@ -69,6 +70,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-Tab", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Fallback: Control-`", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
+        let permissionItem = NSMenuItem(
+            title: "Grant Accessibility Permission",
+            action: #selector(requestAccessibilityPermission),
+            keyEquivalent: ""
+        )
+        permissionItem.target = self
+        menu.addItem(permissionItem)
+
+        let settingsItem = NSMenuItem(
+            title: "Open Accessibility Settings",
+            action: #selector(openAccessibilitySettings),
+            keyEquivalent: ""
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         statusItem = item
@@ -83,5 +100,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 await coordinator?.refreshActiveTab()
             }
         }
+    }
+
+    @objc private func requestAccessibilityPermission() {
+        AccessibilityPermissionPrompter.requestIfNeeded()
+        hotkeyController?.refreshControlTabEventTap()
+    }
+
+    @objc private func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 }

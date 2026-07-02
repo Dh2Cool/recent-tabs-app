@@ -37,6 +37,11 @@ public final class HotkeyController {
         installEventMonitors()
     }
 
+    public func refreshControlTabEventTap() {
+        uninstallControlTabEventTap()
+        installControlTabEventTap()
+    }
+
     public func stop() {
         for hotKeyRef in hotKeyRefs {
             UnregisterEventHotKey(hotKeyRef)
@@ -45,14 +50,8 @@ public final class HotkeyController {
         if let eventHandlerRef {
             RemoveEventHandler(eventHandlerRef)
         }
-        if let controlTabRunLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), controlTabRunLoopSource, .commonModes)
-        }
-        if let controlTabEventTap {
-            CGEvent.tapEnable(tap: controlTabEventTap, enable: false)
-        }
-        controlTabRunLoopSource = nil
-        controlTabEventTap = nil
+        eventHandlerRef = nil
+        uninstallControlTabEventTap()
         if let flagsMonitor {
             NSEvent.removeMonitor(flagsMonitor)
         }
@@ -123,6 +122,10 @@ public final class HotkeyController {
     }
 
     private func installControlTabEventTap() {
+        guard controlTabEventTap == nil else {
+            return
+        }
+
         let selfPointer = Unmanaged.passUnretained(self).toOpaque()
         let eventMask = CGEventMask(1 << CGEventType.keyDown.rawValue)
 
@@ -163,6 +166,17 @@ public final class HotkeyController {
         controlTabRunLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+    }
+
+    private func uninstallControlTabEventTap() {
+        if let controlTabRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), controlTabRunLoopSource, .commonModes)
+        }
+        if let controlTabEventTap {
+            CGEvent.tapEnable(tap: controlTabEventTap, enable: false)
+        }
+        controlTabRunLoopSource = nil
+        controlTabEventTap = nil
     }
 
     private func installEventMonitors() {
