@@ -51,13 +51,15 @@ public final class FaviconProvider: ObservableObject {
     }
 
     private func faviconURL(for tab: SafariTab) -> URL? {
-        guard let host = tab.url.host(percentEncoded: false) ?? tab.url.host else {
-            return nil
-        }
-        return URL(string: "https://www.google.com/s2/favicons?sz=128&domain=\(host)")
+        var components = URLComponents(string: "https://www.google.com/s2/favicons")
+        components?.queryItems = [
+            URLQueryItem(name: "sz", value: "128"),
+            URLQueryItem(name: "domain_url", value: tab.url.absoluteString)
+        ]
+        return components?.url
     }
 
     private func cacheKey(for tab: SafariTab) -> String {
-        tab.url.host(percentEncoded: false) ?? tab.url.host ?? tab.url.absoluteString
+        tab.url.absoluteString
     }
 }

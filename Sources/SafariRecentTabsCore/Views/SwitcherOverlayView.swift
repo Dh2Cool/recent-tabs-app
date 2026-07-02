@@ -81,14 +81,16 @@ private struct FaviconImage: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.white.opacity(0.10))
-                .frame(width: 68, height: 68)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.16), lineWidth: isHighlighted ? 4 : 1)
-                )
-                .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
+            if isHighlighted {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.white.opacity(0.14))
+                    .frame(width: 72, height: 72)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.white.opacity(0.92), lineWidth: 4)
+                    )
+                    .shadow(color: .black.opacity(0.32), radius: 18, x: 0, y: 10)
+            }
 
             Image(nsImage: image)
                 .resizable()
@@ -105,14 +107,16 @@ private struct FallbackIcon: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.white.opacity(0.12))
-                .frame(width: 68, height: 68)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.16), lineWidth: isHighlighted ? 4 : 1)
-                )
-                .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
+            if isHighlighted {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.white.opacity(0.14))
+                    .frame(width: 72, height: 72)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.white.opacity(0.92), lineWidth: 4)
+                    )
+                    .shadow(color: .black.opacity(0.32), radius: 18, x: 0, y: 10)
+            }
 
             Text(initial)
                 .font(.system(size: isHighlighted ? 34 : 30, weight: .bold, design: .rounded))
