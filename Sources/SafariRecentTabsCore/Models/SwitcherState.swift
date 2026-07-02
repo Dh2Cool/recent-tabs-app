@@ -26,4 +26,11 @@ public struct SwitcherState: Equatable {
         }
         highlightedIndex = (highlightedIndex + 1) % tabs.count
     }
+
+    public mutating func cycleBackward() {
+        guard !tabs.isEmpty else {
+            return
+        }
+        highlightedIndex = (highlightedIndex + tabs.count - 1) % tabs.count
+    }
 }

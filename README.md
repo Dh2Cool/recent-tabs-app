@@ -11,6 +11,7 @@ It is built for the places Safari extensions cannot reliably reach: the address 
 - Press Control-Backtick to open a Safari tab switcher.
 - See tabs from the frontmost Safari window in recent order.
 - Keep holding Control and press Backtick to cycle.
+- Keep holding Control and press Shift-Backtick to cycle backward.
 - Release Control to switch to the highlighted tab.
 - Use Escape to cancel.
 - Works even when focus is in Safari's address bar.
@@ -106,7 +107,8 @@ System Settings > Privacy & Security > Automation
 3. Launch Safari Recent Tabs.
 4. Press Control-Backtick while Safari is frontmost.
 5. Keep holding Control and press Backtick again to cycle.
-6. Release Control to switch.
+6. Press Shift-Backtick while holding Control to cycle backward.
+7. Release Control to switch.
 
 The app intentionally ignores the shortcut when Safari is not the frontmost app.
 

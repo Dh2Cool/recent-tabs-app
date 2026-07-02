@@ -39,6 +39,22 @@ final class SwitcherCoordinatorTests: XCTestCase {
         XCTAssertEqual(panel.showCount, 1)
     }
 
+    func testReverseHotkeyOpensWithLastTabHighlighted() async {
+        let safari = FakeSafariClient(tabs: sampleTabs)
+        let panel = FakePanelController()
+        let activeApp = FakeActiveApplicationProvider(isSafariFrontmost: true)
+        let coordinator = SwitcherCoordinator(
+            safariClient: safari,
+            faviconProvider: FaviconProvider(),
+            panelController: panel,
+            activeApplicationProvider: activeApp
+        )
+
+        await coordinator.handleReverseHotkey()
+
+        XCTAssertEqual(panel.lastState?.highlightedTab?.id, sampleTabs.last?.id)
+    }
+
     func testHotkeyStartsSnapshotLoadingForDisplayedTabs() async {
         let safari = FakeSafariClient(tabs: sampleTabs)
         let panel = FakePanelController()
@@ -84,9 +100,11 @@ private final class FakeSafariClient: SafariControlling {
 @MainActor
 private final class FakePanelController: SwitcherPanelControlling {
     private(set) var showCount = 0
+    private(set) var lastState: SwitcherState?
 
     func show(state: SwitcherState) {
         showCount += 1
+        lastState = state
     }
 
     func hide() {}

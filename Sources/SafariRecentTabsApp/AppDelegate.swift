@@ -29,6 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     await coordinator?.handleHotkey()
                 }
             },
+            onReverseHotkey: { [weak coordinator] in
+                Task { @MainActor in
+                    await coordinator?.handleReverseHotkey()
+                }
+            },
             onControlReleased: { [weak coordinator] in
                 Task { @MainActor in
                     await coordinator?.handleControlRelease()
@@ -63,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Safari Recent Tabs", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Shortcut: Control-`", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-`", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu

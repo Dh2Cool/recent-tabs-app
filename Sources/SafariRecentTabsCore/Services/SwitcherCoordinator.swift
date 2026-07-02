@@ -44,6 +44,21 @@ public final class SwitcherCoordinator {
             return
         }
 
+        await openSwitcher(reverse: false)
+    }
+
+    public func handleReverseHotkey() async {
+        if var existingState = state {
+            existingState.cycleBackward()
+            state = existingState
+            panelController.show(state: existingState)
+            return
+        }
+
+        await openSwitcher(reverse: true)
+    }
+
+    private func openSwitcher(reverse: Bool) async {
         guard activeApplicationProvider.isSafariFrontmost else {
             return
         }
@@ -58,7 +73,7 @@ public final class SwitcherCoordinator {
             let ordered = recentTabs.orderedTabs(current: current, availableTabs: tabs)
             let newState = SwitcherState(
                 tabs: ordered,
-                highlightedIndex: RecentTabStore.initialHighlightIndex(for: ordered)
+                highlightedIndex: initialHighlightIndex(for: ordered, reverse: reverse)
             )
             state = newState
             ordered.forEach { faviconProvider.loadIconIfNeeded(for: $0) }
@@ -68,6 +83,13 @@ public final class SwitcherCoordinator {
             panelController.hide()
             state = nil
         }
+    }
+
+    private func initialHighlightIndex(for orderedTabs: [SafariTab], reverse: Bool) -> Int {
+        guard reverse, orderedTabs.count > 1 else {
+            return RecentTabStore.initialHighlightIndex(for: orderedTabs)
+        }
+        return orderedTabs.count - 1
     }
 
     public func handleControlRelease() async {
