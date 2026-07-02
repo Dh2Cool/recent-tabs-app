@@ -6,6 +6,7 @@ public final class SwitcherCoordinator {
     private let safariClient: SafariControlling
     private let faviconProvider: FaviconProvider
     private let panelController: SwitcherPanelControlling
+    private let activeApplicationProvider: ActiveApplicationProviding
     private var recentTabs = RecentTabStore()
     private var state: SwitcherState?
     private var isActivating = false
@@ -13,14 +14,19 @@ public final class SwitcherCoordinator {
     public init(
         safariClient: SafariControlling,
         faviconProvider: FaviconProvider,
-        panelController: SwitcherPanelControlling
+        panelController: SwitcherPanelControlling,
+        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider()
     ) {
         self.safariClient = safariClient
         self.faviconProvider = faviconProvider
         self.panelController = panelController
+        self.activeApplicationProvider = activeApplicationProvider
     }
 
     public func refreshActiveTab() async {
+        guard activeApplicationProvider.isSafariFrontmost else {
+            return
+        }
         guard let current = try? safariClient.frontmostWindowTabs().first(where: \.isActive) else {
             return
         }
@@ -32,6 +38,10 @@ public final class SwitcherCoordinator {
             existingState.cycleForward()
             state = existingState
             panelController.show(state: existingState)
+            return
+        }
+
+        guard activeApplicationProvider.isSafariFrontmost else {
             return
         }
 
