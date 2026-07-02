@@ -51,25 +51,10 @@ private struct SwitcherTabTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ZStack {
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .fill(tileBackground)
-                    .frame(width: 120, height: 76)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15, style: .continuous)
-                            .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.14), lineWidth: isHighlighted ? 4 : 1)
-                    )
-                    .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
-
                 if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 42, height: 42)
+                    FaviconImage(image: image, isHighlighted: isHighlighted)
                 } else {
-                    Text(display.fallbackInitial)
-                        .font(.system(size: isHighlighted ? 34 : 30, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                    FallbackIcon(initial: display.fallbackInitial, isHighlighted: isHighlighted)
                 }
             }
             .frame(width: SwitcherOverlayMetrics.tileWidth, height: 86, alignment: .center)
@@ -88,15 +73,50 @@ private struct SwitcherTabTile: View {
             .frame(width: SwitcherOverlayMetrics.tileWidth, alignment: .leading)
         }
     }
+}
 
-    private var tileBackground: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(nsColor: .controlAccentColor).opacity(0.78),
-                Color(nsColor: .systemBlue).opacity(0.62)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+private struct FaviconImage: View {
+    let image: NSImage
+    let isHighlighted: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.white.opacity(0.10))
+                .frame(width: 68, height: 68)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.16), lineWidth: isHighlighted ? 4 : 1)
+                )
+                .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
+
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 48, height: 48)
+        }
+    }
+}
+
+private struct FallbackIcon: View {
+    let initial: String
+    let isHighlighted: Bool
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.white.opacity(0.12))
+                .frame(width: 68, height: 68)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isHighlighted ? .white.opacity(0.92) : .white.opacity(0.16), lineWidth: isHighlighted ? 4 : 1)
+                )
+                .shadow(color: isHighlighted ? .black.opacity(0.32) : .clear, radius: 18, x: 0, y: 10)
+
+            Text(initial)
+                .font(.system(size: isHighlighted ? 34 : 30, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.92))
+        }
     }
 }
