@@ -1,14 +1,18 @@
 import AppKit
 import Carbon
+import CoreGraphics
 
 public final class HotkeyController {
     private let onHotkey: () -> Void
     private let onReverseHotkey: () -> Void
     private let onControlReleased: () -> Void
     private let onEscape: () -> Void
+    private let activeApplicationProvider: ActiveApplicationProviding
 
     private var hotKeyRefs: [EventHotKeyRef] = []
     private var eventHandlerRef: EventHandlerRef?
+    private var controlTabEventTap: CFMachPort?
+    private var controlTabRunLoopSource: CFRunLoopSource?
     private var flagsMonitor: Any?
     private var keyMonitor: Any?
     private var localKeyMonitor: Any?
@@ -17,16 +21,19 @@ public final class HotkeyController {
         onHotkey: @escaping () -> Void,
         onReverseHotkey: @escaping () -> Void,
         onControlReleased: @escaping () -> Void,
-        onEscape: @escaping () -> Void
+        onEscape: @escaping () -> Void,
+        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider()
     ) {
         self.onHotkey = onHotkey
         self.onReverseHotkey = onReverseHotkey
         self.onControlReleased = onControlReleased
         self.onEscape = onEscape
+        self.activeApplicationProvider = activeApplicationProvider
     }
 
     public func start() {
         registerCarbonHotkey()
+        installControlTabEventTap()
         installEventMonitors()
     }
 
@@ -38,6 +45,14 @@ public final class HotkeyController {
         if let eventHandlerRef {
             RemoveEventHandler(eventHandlerRef)
         }
+        if let controlTabRunLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), controlTabRunLoopSource, .commonModes)
+        }
+        if let controlTabEventTap {
+            CGEvent.tapEnable(tap: controlTabEventTap, enable: false)
+        }
+        controlTabRunLoopSource = nil
+        controlTabEventTap = nil
         if let flagsMonitor {
             NSEvent.removeMonitor(flagsMonitor)
         }
@@ -105,6 +120,49 @@ public final class HotkeyController {
         if status == noErr, let hotKeyRef {
             hotKeyRefs.append(hotKeyRef)
         }
+    }
+
+    private func installControlTabEventTap() {
+        let selfPointer = Unmanaged.passUnretained(self).toOpaque()
+        let eventMask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: eventMask,
+            callback: { _, type, event, userInfo in
+                guard type == .keyDown, let userInfo else {
+                    return Unmanaged.passUnretained(event)
+                }
+
+                let controller = Unmanaged<HotkeyController>.fromOpaque(userInfo).takeUnretainedValue()
+                let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+                guard let action = KeyboardShortcutClassifier.action(keyCode: keyCode, flags: event.flags),
+                      controller.activeApplicationProvider.isSafariFrontmost
+                else {
+                    return Unmanaged.passUnretained(event)
+                }
+
+                switch action {
+                case .forward:
+                    controller.onHotkey()
+                case .reverse:
+                    controller.onReverseHotkey()
+                }
+
+                return nil
+            },
+            userInfo: selfPointer
+        ) else {
+            return
+        }
+
+        controlTabEventTap = tap
+        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        controlTabRunLoopSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
     }
 
     private func installEventMonitors() {

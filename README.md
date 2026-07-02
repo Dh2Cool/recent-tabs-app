@@ -8,10 +8,10 @@ It is built for the places Safari extensions cannot reliably reach: the address 
 
 ## What It Does
 
-- Press Control-Backtick to open a Safari tab switcher.
+- Press Control-Tab to open a Safari tab switcher.
 - See tabs from the frontmost Safari window in recent order.
-- Keep holding Control and press Backtick to cycle.
-- Keep holding Control and press Shift-Backtick to cycle backward.
+- Keep holding Control and press Tab to cycle.
+- Keep holding Control and press Shift-Tab to cycle backward.
 - Release Control to switch to the highlighted tab.
 - Use Escape to cancel.
 - Works even when focus is in Safari's address bar.
@@ -32,6 +32,8 @@ Safari Recent Tabs is designed to stay local.
 
 macOS may ask for Automation permission so the app can read and switch Safari tabs. That permission is used only to control Safari locally.
 
+Control-Tab is intercepted only while Safari is frontmost. Depending on your macOS privacy settings, the app may also need Input Monitoring or Accessibility permission for that keyboard event tap.
+
 The switcher uses favicons, titles, and domains by default. That keeps the app fast and avoids asking for broad screen-capture permissions.
 
 ## Current Status
@@ -41,7 +43,7 @@ This is an early native MVP.
 Working:
 
 - Native menu-bar/background app.
-- Global Control-Backtick shortcut.
+- Safari-scoped Control-Tab shortcut.
 - Command-Tab-style press-and-hold behavior.
 - Frontmost Safari window tab switching.
 - MRU tab ordering.
@@ -96,6 +98,8 @@ If the shortcut does not work as expected, check:
 
 ```text
 System Settings > Privacy & Security > Automation
+System Settings > Privacy & Security > Input Monitoring
+System Settings > Privacy & Security > Accessibility
 ```
 
 ## How To Use
@@ -103,9 +107,9 @@ System Settings > Privacy & Security > Automation
 1. Open Safari.
 2. Open a few tabs in one Safari window.
 3. Launch Safari Recent Tabs.
-4. Press Control-Backtick while Safari is frontmost.
-5. Keep holding Control and press Backtick again to cycle.
-6. Press Shift-Backtick while holding Control to cycle backward.
+4. Press Control-Tab while Safari is frontmost.
+5. Keep holding Control and press Tab again to cycle.
+6. Press Shift-Tab while holding Control to cycle backward.
 7. Release Control to switch.
 
 The app intentionally ignores the shortcut when Safari is not the frontmost app.

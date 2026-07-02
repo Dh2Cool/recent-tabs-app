@@ -13,10 +13,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let safariClient = AppleScriptSafariAutomationClient()
         let faviconProvider = FaviconProvider()
         let panelController = SwitcherPanelController(faviconProvider: faviconProvider)
+        let activeApplicationProvider = WorkspaceActiveApplicationProvider()
         let coordinator = SwitcherCoordinator(
             safariClient: safariClient,
             faviconProvider: faviconProvider,
-            panelController: panelController
+            panelController: panelController,
+            activeApplicationProvider: activeApplicationProvider
         )
         let hotkeyController = HotkeyController(
             onHotkey: { [weak coordinator] in
@@ -38,7 +40,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     coordinator?.cancel()
                 }
-            }
+            },
+            activeApplicationProvider: activeApplicationProvider
         )
 
         self.coordinator = coordinator
@@ -62,8 +65,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Safari Recent Tabs", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Shortcut: Control-`", action: nil, keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-`", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Shortcut: Control-Tab", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-Tab", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Fallback: Control-`", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
