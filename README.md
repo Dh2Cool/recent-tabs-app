@@ -2,6 +2,8 @@
 
 **Command-Tab for Safari tabs.**
 
+![Safari Recent Tabs demo](assets/demo.gif)
+
 Safari Recent Tabs is a native macOS utility that lets you switch between Safari tabs in most-recently-used order, using a Command-Tab-style overlay.
 
 It is built for the places Safari extensions cannot reliably reach: the address bar, Start Page, blank tabs, and browser chrome.
@@ -58,11 +60,17 @@ Still rough:
 
 ## Run From Source
 
-Requirements:
+### Requirements
 
-- macOS 13 or newer
-- Xcode command line tools
-- Safari
+- A Mac running macOS 13 (Ventura) or newer.
+- Safari, with at least two tabs open in the window you want to switch.
+- Xcode 15 or newer, or the Xcode Command Line Tools (Swift 5.9+).
+- Git, to clone the repository.
+
+There are no third-party package dependencies, accounts, cloud services, or
+browser extensions to install.
+
+### Install and run
 
 Clone and run:
 
@@ -90,9 +98,11 @@ Run tests:
 swift test
 ```
 
-## First-Time Permissions
+## Permissions
 
-On first use, macOS may ask whether Safari Recent Tabs can control Safari. Click **Allow**.
+On first use, macOS will ask whether Safari Recent Tabs can control Safari.
+Click **Allow**. This Automation permission is required for the app to list
+and activate tabs.
 
 If the shortcut does not work as expected, check:
 
@@ -107,6 +117,9 @@ If you do need to add the app manually, click **+** under Accessibility and add:
 ```text
 dist/SafariRecentTabs.app
 ```
+
+The app does not require Screen Recording permission, a network connection,
+an account, or a Safari extension for its core functionality.
 
 ## How To Use
 
@@ -149,6 +162,19 @@ swift build
 ./script/build_and_run.sh
 ./script/build_and_run.sh --verify
 ```
+
+## Before You Share This Project
+
+This repository is ready to be public as source code, but it is currently an
+early MVP: releases are not signed or notarized, and there is no packaged
+installer. Ask people to run it from source and expect the Automation prompt
+on first launch.
+
+Before inviting contributions, add a license. Until a license is included,
+GitHub visitors can view the source but do not have clear permission to reuse
+or distribute it. An MIT license is a simple choice for a small open-source
+utility; Apache-2.0 is another permissive option with an explicit patent
+grant.
 
 ## Name
 
