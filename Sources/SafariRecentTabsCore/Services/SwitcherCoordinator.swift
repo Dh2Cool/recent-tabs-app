@@ -108,8 +108,59 @@ public final class SwitcherCoordinator {
         }
     }
 
+    public func handleCloseHighlightedTab() async {
+        guard var existingState = state, let selected = existingState.highlightedTab else {
+            return
+        }
+
+        do {
+            try safariClient.close(tab: selected)
+            let remainingTabs = try safariClient.frontmostWindowTabs()
+            guard !remainingTabs.isEmpty else {
+                cancel()
+                return
+            }
+
+            let remainingOrderedTabs = existingState.tabs.compactMap {
+                updatedTab(for: $0, afterClosing: selected, in: remainingTabs)
+            }
+            guard !remainingOrderedTabs.isEmpty else {
+                cancel()
+                return
+            }
+
+            let nextHighlightedIndex = min(existingState.highlightedIndex, remainingOrderedTabs.count - 1)
+            existingState = SwitcherState(
+                tabs: remainingOrderedTabs,
+                highlightedIndex: nextHighlightedIndex
+            )
+            state = existingState
+            existingState.tabs.forEach { faviconProvider.loadIconIfNeeded(for: $0) }
+            panelController.show(state: existingState)
+        } catch {
+            return
+        }
+    }
+
     public func cancel() {
         state = nil
         panelController.hide()
+    }
+
+    private func updatedTab(for tab: SafariTab, afterClosing closedTab: SafariTab, in remainingTabs: [SafariTab]) -> SafariTab? {
+        guard tab.id != closedTab.id else {
+            return nil
+        }
+
+        let updatedIndex: Int
+        if tab.windowID == closedTab.windowID, tab.index > closedTab.index {
+            updatedIndex = tab.index - 1
+        } else {
+            updatedIndex = tab.index
+        }
+
+        return remainingTabs.first {
+            $0.windowID == tab.windowID && $0.index == updatedIndex
+        }
     }
 }

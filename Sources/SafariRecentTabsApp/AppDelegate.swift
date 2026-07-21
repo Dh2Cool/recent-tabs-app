@@ -41,6 +41,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     coordinator?.cancel()
                 }
             },
+            onCloseHighlightedTab: { [weak coordinator] in
+                Task { @MainActor in
+                    await coordinator?.handleCloseHighlightedTab()
+                }
+            },
             activeApplicationProvider: activeApplicationProvider
         )
 

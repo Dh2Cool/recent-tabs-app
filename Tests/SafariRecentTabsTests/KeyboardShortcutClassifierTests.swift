@@ -39,4 +39,13 @@ final class KeyboardShortcutClassifierTests: XCTestCase {
 
         XCTAssertNil(action)
     }
+
+    func testControlWClosesHighlightedTab() {
+        let action = KeyboardShortcutClassifier.action(
+            keyCode: UInt16(kVK_ANSI_W),
+            flags: [.maskControl]
+        )
+
+        XCTAssertEqual(action, .closeHighlightedTab)
+    }
 }

@@ -10,6 +10,7 @@ public final class HotkeyController {
     private let onReverseHotkey: () -> Void
     private let onControlReleased: () -> Void
     private let onEscape: () -> Void
+    private let onCloseHighlightedTab: () -> Void
     private let activeApplicationProvider: ActiveApplicationProviding
 
     private var fallbackHotKeyRefs: [EventHotKeyRef] = []
@@ -25,12 +26,14 @@ public final class HotkeyController {
         onReverseHotkey: @escaping () -> Void,
         onControlReleased: @escaping () -> Void,
         onEscape: @escaping () -> Void,
+        onCloseHighlightedTab: @escaping () -> Void,
         activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider()
     ) {
         self.onHotkey = onHotkey
         self.onReverseHotkey = onReverseHotkey
         self.onControlReleased = onControlReleased
         self.onEscape = onEscape
+        self.onCloseHighlightedTab = onCloseHighlightedTab
         self.activeApplicationProvider = activeApplicationProvider
     }
 
@@ -212,12 +215,24 @@ public final class HotkeyController {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
                 self?.onEscape()
+            } else if KeyboardShortcutClassifier.action(
+                keyCode: event.keyCode,
+                flags: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
+            ) == .closeHighlightedTab {
+                self?.onCloseHighlightedTab()
             }
         }
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
                 self?.onEscape()
+                return nil
+            }
+            if KeyboardShortcutClassifier.action(
+                keyCode: event.keyCode,
+                flags: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
+            ) == .closeHighlightedTab {
+                self?.onCloseHighlightedTab()
                 return nil
             }
             return event
@@ -231,6 +246,8 @@ public final class HotkeyController {
             onHotkey()
         case .reverse:
             onReverseHotkey()
+        case .closeHighlightedTab:
+            onCloseHighlightedTab()
         }
     }
 

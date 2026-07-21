@@ -4,6 +4,7 @@ import Foundation
 public protocol SafariControlling {
     func frontmostWindowTabs() throws -> [SafariTab]
     func activate(tab: SafariTab) throws
+    func close(tab: SafariTab) throws
 }
 
 public enum SafariAutomationError: Error, LocalizedError {
@@ -99,6 +100,34 @@ public final class AppleScriptSafariAutomationClient: SafariControlling {
                             set current tab of safariWindow to safariTab
                             set index of safariWindow to 1
                             activate
+                            return
+                        end if
+                    end repeat
+                end repeat
+            end tell
+            """
+            try run(script: fallbackScript)
+        }
+    }
+
+    public func close(tab: SafariTab) throws {
+        let escapedURL = tab.url.absoluteString.replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Safari"
+            set targetWindow to first window whose id is \(tab.windowID)
+            close tab \(tab.index) of targetWindow
+        end tell
+        """
+
+        do {
+            try run(script: script)
+        } catch {
+            let fallbackScript = """
+            tell application "Safari"
+                repeat with safariWindow in windows
+                    repeat with safariTab in tabs of safariWindow
+                        if URL of safariTab is "\(escapedURL)" then
+                            close safariTab
                             return
                         end if
                     end repeat
