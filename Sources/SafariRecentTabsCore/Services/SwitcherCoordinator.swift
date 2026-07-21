@@ -7,6 +7,7 @@ public final class SwitcherCoordinator {
     private let faviconProvider: FaviconProvider
     private let panelController: SwitcherPanelControlling
     private let activeApplicationProvider: ActiveApplicationProviding
+    private let onSwitcherVisibilityChanged: (Bool) -> Void
     private var recentTabs = RecentTabStore()
     private var state: SwitcherState?
     private var isActivating = false
@@ -15,12 +16,14 @@ public final class SwitcherCoordinator {
         safariClient: SafariControlling,
         faviconProvider: FaviconProvider,
         panelController: SwitcherPanelControlling,
-        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider()
+        activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider(),
+        onSwitcherVisibilityChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.safariClient = safariClient
         self.faviconProvider = faviconProvider
         self.panelController = panelController
         self.activeApplicationProvider = activeApplicationProvider
+        self.onSwitcherVisibilityChanged = onSwitcherVisibilityChanged
     }
 
     public func refreshActiveTab() async {
@@ -74,10 +77,12 @@ public final class SwitcherCoordinator {
             )
             state = newState
             ordered.forEach { faviconProvider.loadIconIfNeeded(for: $0) }
+            onSwitcherVisibilityChanged(true)
             panelController.show(state: newState)
         } catch {
             panelController.hide()
             state = nil
+            onSwitcherVisibilityChanged(false)
         }
     }
 
@@ -98,6 +103,7 @@ public final class SwitcherCoordinator {
             isActivating = false
             state = nil
             panelController.hide()
+            onSwitcherVisibilityChanged(false)
         }
 
         do {
@@ -143,8 +149,12 @@ public final class SwitcherCoordinator {
     }
 
     public func cancel() {
+        guard state != nil else {
+            return
+        }
         state = nil
         panelController.hide()
+        onSwitcherVisibilityChanged(false)
     }
 
     private func updatedTab(for tab: SafariTab, afterClosing closedTab: SafariTab, in remainingTabs: [SafariTab]) -> SafariTab? {

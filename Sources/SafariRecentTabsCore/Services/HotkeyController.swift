@@ -15,6 +15,7 @@ public final class HotkeyController {
 
     private var fallbackHotKeyRefs: [EventHotKeyRef] = []
     private var safariHotKeyRefs: [EventHotKeyRef] = []
+    private var closeHighlightedTabHotKeyRefs: [EventHotKeyRef] = []
     private var eventHandlerRef: EventHandlerRef?
     private var keyMonitor: Any?
     private var localKeyMonitor: Any?
@@ -56,6 +57,7 @@ public final class HotkeyController {
     public func stop() {
         unregisterFallbackHotkeys()
         unregisterSafariHotkeys()
+        unregisterCloseHighlightedTabHotkey()
         if let eventHandlerRef {
             RemoveEventHandler(eventHandlerRef)
         }
@@ -106,6 +108,8 @@ public final class HotkeyController {
                 switch hotKeyID.id {
                 case HotkeyID.fallbackReverse.rawValue, HotkeyID.safariReverse.rawValue:
                     controller.trigger(.reverse)
+                case HotkeyID.closeHighlightedTab.rawValue:
+                    controller.onCloseHighlightedTab()
                 default:
                     controller.trigger(.forward)
                 }
@@ -166,6 +170,27 @@ public final class HotkeyController {
         unregisterHotkeys(&safariHotKeyRefs)
     }
 
+    public func setCloseHighlightedTabHotkeyEnabled(_ isEnabled: Bool) {
+        if isEnabled {
+            guard closeHighlightedTabHotKeyRefs.isEmpty else {
+                return
+            }
+            registerHotkey(
+                id: HotkeyID.closeHighlightedTab.rawValue,
+                keyCode: UInt32(kVK_ANSI_W),
+                modifiers: UInt32(controlKey),
+                label: "Close highlighted tab",
+                refs: &closeHighlightedTabHotKeyRefs
+            )
+        } else {
+            unregisterCloseHighlightedTabHotkey()
+        }
+    }
+
+    private func unregisterCloseHighlightedTabHotkey() {
+        unregisterHotkeys(&closeHighlightedTabHotKeyRefs)
+    }
+
     private func unregisterHotkeys(_ refs: inout [EventHotKeyRef]) {
         for hotKeyRef in refs {
             UnregisterEventHotKey(hotKeyRef)
@@ -215,24 +240,12 @@ public final class HotkeyController {
         keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
                 self?.onEscape()
-            } else if KeyboardShortcutClassifier.action(
-                keyCode: event.keyCode,
-                flags: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
-            ) == .closeHighlightedTab {
-                self?.onCloseHighlightedTab()
             }
         }
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == UInt16(kVK_Escape) {
                 self?.onEscape()
-                return nil
-            }
-            if KeyboardShortcutClassifier.action(
-                keyCode: event.keyCode,
-                flags: CGEventFlags(rawValue: UInt64(event.modifierFlags.rawValue))
-            ) == .closeHighlightedTab {
-                self?.onCloseHighlightedTab()
                 return nil
             }
             return event
@@ -246,8 +259,6 @@ public final class HotkeyController {
             onHotkey()
         case .reverse:
             onReverseHotkey()
-        case .closeHighlightedTab:
-            onCloseHighlightedTab()
         }
     }
 
@@ -275,6 +286,7 @@ private enum HotkeyID: UInt32 {
     case fallbackReverse = 2
     case safariForward = 3
     case safariReverse = 4
+    case closeHighlightedTab = 5
 }
 
 private func fourCharCode(_ string: String) -> OSType {

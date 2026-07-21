@@ -14,13 +14,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let faviconProvider = FaviconProvider()
         let panelController = SwitcherPanelController(faviconProvider: faviconProvider)
         let activeApplicationProvider = WorkspaceActiveApplicationProvider()
+        var hotkeyController: HotkeyController?
         let coordinator = SwitcherCoordinator(
             safariClient: safariClient,
             faviconProvider: faviconProvider,
             panelController: panelController,
-            activeApplicationProvider: activeApplicationProvider
+            activeApplicationProvider: activeApplicationProvider,
+            onSwitcherVisibilityChanged: { isVisible in
+                hotkeyController?.setCloseHighlightedTabHotkeyEnabled(isVisible)
+            }
         )
-        let hotkeyController = HotkeyController(
+        let newHotkeyController = HotkeyController(
             onHotkey: { [weak coordinator] in
                 Task { @MainActor in
                     await coordinator?.handleHotkey()
@@ -50,10 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         self.coordinator = coordinator
-        self.hotkeyController = hotkeyController
+        self.hotkeyController = newHotkeyController
+        hotkeyController = newHotkeyController
 
         configureStatusItem()
-        hotkeyController.start()
+        newHotkeyController.start()
         startPollingSafari()
     }
 

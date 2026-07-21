@@ -71,6 +71,22 @@ final class SwitcherCoordinatorTests: XCTestCase {
         XCTAssertEqual(panel.lastState?.highlightedTab?.title, "Three")
     }
 
+    func testSwitcherVisibilityIsReportedWhileOpen() async {
+        var visibilityChanges: [Bool] = []
+        let coordinator = SwitcherCoordinator(
+            safariClient: FakeSafariClient(tabs: sampleTabs),
+            faviconProvider: FaviconProvider(),
+            panelController: FakePanelController(),
+            activeApplicationProvider: FakeActiveApplicationProvider(isSafariFrontmost: true),
+            onSwitcherVisibilityChanged: { visibilityChanges.append($0) }
+        )
+
+        await coordinator.handleHotkey()
+        coordinator.cancel()
+
+        XCTAssertEqual(visibilityChanges, [true, false])
+    }
+
     private var sampleTabs: [SafariTab] {
         [
             SafariTab(windowID: 1, index: 1, title: "One", url: URL(string: "https://one.example")!, isActive: true),

@@ -14,6 +14,7 @@ It is built for the places Safari extensions cannot reliably reach: the address 
 - See tabs from the frontmost Safari window in recent order.
 - Keep holding Control and press Tab to cycle.
 - Keep holding Control and press Shift-Tab to cycle backward.
+- While holding Control, press W to close the highlighted tab.
 - Release Control to switch to the highlighted tab.
 - Use Escape to cancel.
 - Works even when focus is in Safari's address bar.
@@ -110,7 +111,7 @@ If the shortcut does not work as expected, check:
 System Settings > Privacy & Security > Automation
 ```
 
-Accessibility is no longer required for the main Control-Tab shortcut path. The app still includes an **Open Accessibility Settings** menu item because some development builds may need it for auxiliary global-key behavior such as Escape-to-cancel.
+Accessibility is no longer required for Control-Tab or Control-W. The app still includes an **Open Accessibility Settings** menu item because some development builds may need it for auxiliary global-key behavior such as Escape-to-cancel.
 
 If you do need to add the app manually, click **+** under Accessibility and add:
 
@@ -129,7 +130,8 @@ an account, or a Safari extension for its core functionality.
 4. Press Control-Tab while Safari is frontmost.
 5. Keep holding Control and press Tab again to cycle.
 6. Press Shift-Tab while holding Control to cycle backward.
-7. Release Control to switch.
+7. Press W while holding Control to close the highlighted tab.
+8. Release Control to switch.
 
 The app intentionally ignores the shortcut when Safari is not the frontmost app.
 
