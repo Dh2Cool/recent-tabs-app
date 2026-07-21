@@ -72,27 +72,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configureStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.title = "S"
+        item.button?.image = NSImage(
+            systemSymbolName: "rectangle.3.group",
+            accessibilityDescription: "Safari Recent Tabs"
+        )
+        item.button?.image?.isTemplate = true
         item.button?.toolTip = "Safari Recent Tabs"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Safari Recent Tabs", action: nil, keyEquivalent: ""))
+        menu.addItem(menuHeader("Safari Recent Tabs", font: .systemFont(ofSize: 14, weight: .semibold)))
+        menu.addItem(menuHeader("Switch Safari tabs in most-recently-used order"))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Shortcut: Control-Tab", action: nil, keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-Tab", action: nil, keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Fallback: Control-`", action: nil, keyEquivalent: ""))
-        menu.addItem(.separator())
+
+        menu.addItem(menuSectionHeader("SWITCHER"))
         let allWindowsItem = NSMenuItem(
-            title: "Include Tabs From All Windows",
+            title: "Include tabs from all windows",
             action: #selector(toggleIncludesTabsFromAllWindows(_:)),
             keyEquivalent: ""
         )
         allWindowsItem.target = self
         allWindowsItem.state = includesTabsFromAllWindows ? .on : .off
+        allWindowsItem.toolTip = "Include tabs from every Safari window in the switcher."
         menu.addItem(allWindowsItem)
         menu.addItem(.separator())
+
+        menu.addItem(menuSectionHeader("SHORTCUTS"))
+        menu.addItem(shortcutMenuItem(title: "Next tab", keyEquivalent: "\t", modifiers: .control))
+        menu.addItem(shortcutMenuItem(title: "Previous tab", keyEquivalent: "\t", modifiers: [.control, .shift]))
+        menu.addItem(shortcutMenuItem(title: "Close highlighted tab", keyEquivalent: "w", modifiers: .control))
+        menu.addItem(shortcutMenuItem(title: "Fallback switcher", keyEquivalent: "`", modifiers: .control))
+        menu.addItem(.separator())
+
+        menu.addItem(menuSectionHeader("PERMISSIONS"))
         let permissionItem = NSMenuItem(
-            title: "Grant Accessibility Permission",
+            title: "Request Accessibility permission…",
             action: #selector(requestAccessibilityPermission),
             keyEquivalent: ""
         )
@@ -100,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(permissionItem)
 
         let settingsItem = NSMenuItem(
-            title: "Open Accessibility Settings",
+            title: "Open Accessibility Settings…",
             action: #selector(openAccessibilitySettings),
             keyEquivalent: ""
         )
@@ -110,6 +123,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         statusItem = item
+    }
+
+    private func menuHeader(_ title: String, font: NSFont = .systemFont(ofSize: 11, weight: .regular)) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+        return item
+    }
+
+    private func menuSectionHeader(_ title: String) -> NSMenuItem {
+        menuHeader(title, font: .systemFont(ofSize: 10, weight: .semibold))
+    }
+
+    private func shortcutMenuItem(
+        title: String,
+        keyEquivalent: String,
+        modifiers: NSEvent.ModifierFlags
+    ) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: keyEquivalent)
+        item.keyEquivalentModifierMask = modifiers
+        item.isEnabled = false
+        return item
     }
 
     private func startPollingSafari() {
