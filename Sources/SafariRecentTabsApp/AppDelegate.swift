@@ -2,10 +2,12 @@ import AppKit
 import SafariRecentTabsCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let includesAllWindowsPreferenceKey = "includesTabsFromAllWindows"
     private var statusItem: NSStatusItem?
     private var coordinator: SwitcherCoordinator?
     private var hotkeyController: HotkeyController?
     private var pollTimer: Timer?
+    private var includesTabsFromAllWindows = UserDefaults.standard.bool(forKey: includesAllWindowsPreferenceKey)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -20,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             faviconProvider: faviconProvider,
             panelController: panelController,
             activeApplicationProvider: activeApplicationProvider,
+            includesTabsFromAllWindows: includesTabsFromAllWindows,
             onSwitcherVisibilityChanged: { isVisible in
                 hotkeyController?.setCloseHighlightedTabHotkeyEnabled(isVisible)
             }
@@ -79,6 +82,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Reverse: Control-Shift-Tab", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Fallback: Control-`", action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
+        let allWindowsItem = NSMenuItem(
+            title: "Include Tabs From All Windows",
+            action: #selector(toggleIncludesTabsFromAllWindows(_:)),
+            keyEquivalent: ""
+        )
+        allWindowsItem.target = self
+        allWindowsItem.state = includesTabsFromAllWindows ? .on : .off
+        menu.addItem(allWindowsItem)
+        menu.addItem(.separator())
         let permissionItem = NSMenuItem(
             title: "Grant Accessibility Permission",
             action: #selector(requestAccessibilityPermission),
@@ -114,6 +126,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func requestAccessibilityPermission() {
         AccessibilityPermissionPrompter.requestIfNeeded()
         hotkeyController?.refreshSafariScopedHotkeys()
+    }
+
+    @MainActor @objc private func toggleIncludesTabsFromAllWindows(_ sender: NSMenuItem) {
+        includesTabsFromAllWindows.toggle()
+        UserDefaults.standard.set(includesTabsFromAllWindows, forKey: Self.includesAllWindowsPreferenceKey)
+        sender.state = includesTabsFromAllWindows ? .on : .off
+        coordinator?.setIncludesTabsFromAllWindows(includesTabsFromAllWindows)
     }
 
     @objc private func openAccessibilitySettings() {

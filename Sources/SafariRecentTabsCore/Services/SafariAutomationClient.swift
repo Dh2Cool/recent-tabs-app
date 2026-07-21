@@ -3,6 +3,7 @@ import Foundation
 
 public protocol SafariControlling {
     func frontmostWindowTabs() throws -> [SafariTab]
+    func allWindowTabs() throws -> [SafariTab]
     func activate(tab: SafariTab) throws
     func close(tab: SafariTab) throws
 }
@@ -52,7 +53,39 @@ public final class AppleScriptSafariAutomationClient: SafariControlling {
         end tell
         """
 
-        let result = try run(script: script)
+        return parseTabs(from: try run(script: script))
+    }
+
+    public func allWindowTabs() throws -> [SafariTab] {
+        guard NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Safari").isEmpty == false else {
+            throw SafariAutomationError.safariNotRunning
+        }
+
+        let script = """
+        tell application "Safari"
+            if (count of windows) is 0 then return ""
+            set frontWindow to front window
+            set frontWindowID to id of frontWindow
+            set activeIndex to index of current tab of frontWindow
+            set output to ""
+            set sep to ASCII character 31
+            repeat with safariWindow in windows
+                set windowID to id of safariWindow
+                repeat with tabIndex from 1 to count of tabs of safariWindow
+                    set safariTab to tab tabIndex of safariWindow
+                    set isActive to "0"
+                    if windowID is frontWindowID and tabIndex is activeIndex then set isActive to "1"
+                    set output to output & windowID & sep & tabIndex & sep & isActive & sep & name of safariTab & sep & URL of safariTab & linefeed
+                end repeat
+            end repeat
+            return output
+        end tell
+        """
+
+        return parseTabs(from: try run(script: script))
+    }
+
+    private func parseTabs(from result: String) -> [SafariTab] {
         guard !result.isEmpty else {
             return []
         }

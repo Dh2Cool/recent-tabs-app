@@ -87,6 +87,29 @@ final class SwitcherCoordinatorTests: XCTestCase {
         XCTAssertEqual(visibilityChanges, [true, false])
     }
 
+    func testAllWindowsModeIncludesTabsFromOtherWindows() async {
+        let otherWindowTab = SafariTab(
+            windowID: 2,
+            index: 1,
+            title: "Other Window",
+            url: URL(string: "https://other.example")!
+        )
+        let safari = FakeSafariClient(tabs: sampleTabs + [otherWindowTab])
+        let panel = FakePanelController()
+        let coordinator = SwitcherCoordinator(
+            safariClient: safari,
+            faviconProvider: FaviconProvider(),
+            panelController: panel,
+            activeApplicationProvider: FakeActiveApplicationProvider(isSafariFrontmost: true),
+            includesTabsFromAllWindows: true
+        )
+
+        await coordinator.handleHotkey()
+
+        XCTAssertEqual(safari.allWindowTabCallCount, 1)
+        XCTAssertEqual(panel.lastState?.tabs.map(\.title), ["One", "Two", "Three", "Other Window"])
+    }
+
     private var sampleTabs: [SafariTab] {
         [
             SafariTab(windowID: 1, index: 1, title: "One", url: URL(string: "https://one.example")!, isActive: true),
@@ -98,15 +121,23 @@ final class SwitcherCoordinatorTests: XCTestCase {
 
 private final class FakeSafariClient: SafariControlling {
     private var tabs: [SafariTab]
+    private let frontmostWindowID: Int
     private(set) var frontmostWindowTabCallCount = 0
+    private(set) var allWindowTabCallCount = 0
     private(set) var closedTabIDs: [SafariTab.ID] = []
 
-    init(tabs: [SafariTab]) {
+    init(tabs: [SafariTab], frontmostWindowID: Int = 1) {
         self.tabs = tabs
+        self.frontmostWindowID = frontmostWindowID
     }
 
     func frontmostWindowTabs() throws -> [SafariTab] {
         frontmostWindowTabCallCount += 1
+        return tabs.filter { $0.windowID == frontmostWindowID }
+    }
+
+    func allWindowTabs() throws -> [SafariTab] {
+        allWindowTabCallCount += 1
         return tabs
     }
 
@@ -115,10 +146,13 @@ private final class FakeSafariClient: SafariControlling {
     func close(tab: SafariTab) throws {
         closedTabIDs.append(tab.id)
         tabs.removeAll { $0.id == tab.id }
-        tabs = tabs.enumerated().map { offset, tab in
-            SafariTab(
+        var nextIndexByWindow: [Int: Int] = [:]
+        tabs = tabs.map { tab in
+            let nextIndex = nextIndexByWindow[tab.windowID, default: 0] + 1
+            nextIndexByWindow[tab.windowID] = nextIndex
+            return SafariTab(
                 windowID: tab.windowID,
-                index: offset + 1,
+                index: nextIndex,
                 title: tab.title,
                 url: tab.url,
                 isActive: tab.isActive

@@ -17,6 +17,7 @@ It is built for the places Safari extensions cannot reliably reach: the address 
 - While holding Control, press W to close the highlighted tab.
 - Release Control to switch to the highlighted tab.
 - Use Escape to cancel.
+- Use the menu-bar toggle to include tabs from all Safari windows.
 - Works even when focus is in Safari's address bar.
 
 ## Why Native?

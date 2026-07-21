@@ -8,6 +8,7 @@ public final class SwitcherCoordinator {
     private let panelController: SwitcherPanelControlling
     private let activeApplicationProvider: ActiveApplicationProviding
     private let onSwitcherVisibilityChanged: (Bool) -> Void
+    private var includesTabsFromAllWindows: Bool
     private var recentTabs = RecentTabStore()
     private var state: SwitcherState?
     private var isActivating = false
@@ -17,12 +18,14 @@ public final class SwitcherCoordinator {
         faviconProvider: FaviconProvider,
         panelController: SwitcherPanelControlling,
         activeApplicationProvider: ActiveApplicationProviding = WorkspaceActiveApplicationProvider(),
+        includesTabsFromAllWindows: Bool = false,
         onSwitcherVisibilityChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.safariClient = safariClient
         self.faviconProvider = faviconProvider
         self.panelController = panelController
         self.activeApplicationProvider = activeApplicationProvider
+        self.includesTabsFromAllWindows = includesTabsFromAllWindows
         self.onSwitcherVisibilityChanged = onSwitcherVisibilityChanged
     }
 
@@ -58,13 +61,21 @@ public final class SwitcherCoordinator {
         await openSwitcher(reverse: true)
     }
 
+    public func setIncludesTabsFromAllWindows(_ isEnabled: Bool) {
+        guard includesTabsFromAllWindows != isEnabled else {
+            return
+        }
+        includesTabsFromAllWindows = isEnabled
+        cancel()
+    }
+
     private func openSwitcher(reverse: Bool) async {
         guard activeApplicationProvider.isSafariFrontmost else {
             return
         }
 
         do {
-            let tabs = try safariClient.frontmostWindowTabs()
+            let tabs = try tabsForSwitcher()
             guard tabs.count > 1, let current = tabs.first(where: \.isActive) else {
                 return
             }
@@ -121,7 +132,7 @@ public final class SwitcherCoordinator {
 
         do {
             try safariClient.close(tab: selected)
-            let remainingTabs = try safariClient.frontmostWindowTabs()
+            let remainingTabs = try tabsForSwitcher()
             guard !remainingTabs.isEmpty else {
                 cancel()
                 return
@@ -172,5 +183,12 @@ public final class SwitcherCoordinator {
         return remainingTabs.first {
             $0.windowID == tab.windowID && $0.index == updatedIndex
         }
+    }
+
+    private func tabsForSwitcher() throws -> [SafariTab] {
+        if includesTabsFromAllWindows {
+            return try safariClient.allWindowTabs()
+        }
+        return try safariClient.frontmostWindowTabs()
     }
 }
